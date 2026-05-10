@@ -54,6 +54,16 @@ static int match_search(const Product *p, gpointer arg) {
 
 /* ── apply callbacks ─────────────────────────────────────────── */
 
+static void on_search_mode_changed(GtkDropDown *dd, GParamSpec *ps, gpointer ud) {
+    (void)ps; (void)ud;
+    guint mode = gtk_drop_down_get_selected(dd);
+    GtkWidget *entry     = g_object_get_data(G_OBJECT(dd), "entry");
+    GtkWidget *price_box = g_object_get_data(G_OBJECT(dd), "price-box");
+    int is_price = (mode == 2);
+    gtk_widget_set_visible(entry,     !is_price);
+    gtk_widget_set_visible(price_box,  is_price);
+}
+
 static void on_apply_qty(GtkButton *btn, gpointer user_data) {
     (void)btn;
     FilterCtx *ctx = user_data;
@@ -172,20 +182,36 @@ void filter_window_show(AppState *state) {
     gtk_widget_set_margin_top(tab2, 8);
     gtk_widget_set_margin_bottom(tab2, 8);
 
-    static const char *modes[] = { "Наименование", "Модель", "Цена (диапазон)", NULL };
+    static const char *modes[] = { "Наименование", "Модель", "Цена", NULL };
     ctx->dd_search = gtk_drop_down_new_from_strings(modes);
     gtk_box_append(GTK_BOX(tab2), ctx->dd_search);
 
+    /* текстовый запрос — виден при режимах Наименование и Модель */
     ctx->entry_query = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(ctx->entry_query), "Запрос / мин.цена");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(ctx->entry_query), "Поисковый запрос");
     gtk_widget_set_hexpand(ctx->entry_query, TRUE);
     gtk_box_append(GTK_BOX(tab2), ctx->entry_query);
 
+    /* блок ценового диапазона — виден только при режиме Цена */
+    GtkWidget *price_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    gtk_box_append(GTK_BOX(price_box), gtk_label_new("от"));
     ctx->spin_price_min = gtk_spin_button_new_with_range(0, 9999999, 0.01);
+    gtk_spin_button_set_digits(GTK_SPIN_BUTTON(ctx->spin_price_min), 2);
+    gtk_widget_set_size_request(ctx->spin_price_min, 100, -1);
+    gtk_box_append(GTK_BOX(price_box), ctx->spin_price_min);
+    gtk_box_append(GTK_BOX(price_box), gtk_label_new("до"));
     ctx->spin_price_max = gtk_spin_button_new_with_range(0, 9999999, 0.01);
-    gtk_box_append(GTK_BOX(tab2), gtk_label_new("до"));
-    gtk_box_append(GTK_BOX(tab2), ctx->spin_price_min);
-    gtk_box_append(GTK_BOX(tab2), ctx->spin_price_max);
+    gtk_spin_button_set_digits(GTK_SPIN_BUTTON(ctx->spin_price_max), 2);
+    gtk_widget_set_size_request(ctx->spin_price_max, 100, -1);
+    gtk_box_append(GTK_BOX(price_box), ctx->spin_price_max);
+    gtk_widget_set_visible(price_box, FALSE);
+    gtk_box_append(GTK_BOX(tab2), price_box);
+
+    /* переключаем видимость при смене режима */
+    g_object_set_data(G_OBJECT(ctx->dd_search), "entry",     ctx->entry_query);
+    g_object_set_data(G_OBJECT(ctx->dd_search), "price-box", price_box);
+    g_signal_connect(ctx->dd_search, "notify::selected",
+                     G_CALLBACK(on_search_mode_changed), NULL);
 
     GtkWidget *btn_search = gtk_button_new_with_label("Найти");
     gtk_box_append(GTK_BOX(tab2), btn_search);
