@@ -2,3 +2,7 @@
 *.o
 build/
 cmake-build-*/
+dist/
+_CPack_Packages/
+*.nsis
+Inventory-*.exe

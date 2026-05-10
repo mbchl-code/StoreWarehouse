@@ -37,6 +37,7 @@ target_link_directories(inventory PRIVATE ${XLSXWRITER_LIBRARY_DIRS})
 if(WIN32)
     find_program(PYTHON_EXE NAMES python python3 HINTS "C:/Python313" "C:/Python312" "C:/Python311")
     if(PYTHON_EXE)
+        # Post-build: copy DLLs next to exe for running from CLion
         add_custom_command(TARGET inventory POST_BUILD
             COMMAND "${PYTHON_EXE}"
                 "${CMAKE_SOURCE_DIR}/cmake/copy_dlls.py"
@@ -45,7 +46,38 @@ if(WIN32)
             COMMENT "Copying GTK4 runtime DLLs to build directory"
             VERBATIM
         )
+
+        # Custom target: collect full distribution into dist/
+        set(DIST_DIR "${CMAKE_SOURCE_DIR}/dist")
+        add_custom_target(collect_dist
+            COMMAND "${PYTHON_EXE}"
+                "${CMAKE_SOURCE_DIR}/cmake/collect_dist.py"
+                "$<TARGET_FILE:inventory>"
+                "${DIST_DIR}"
+            DEPENDS inventory
+            COMMENT "Collecting distribution package into dist/"
+            VERBATIM
+        )
     endif()
+
+    # CPack / NSIS installer — run: cmake --build . --target package
+    set(DIST_DIR "${CMAKE_SOURCE_DIR}/dist")
+    install(DIRECTORY "${DIST_DIR}/" DESTINATION ".")
+
+    set(CPACK_GENERATOR "NSIS")
+    set(CPACK_PACKAGE_NAME "Inventory")
+    set(CPACK_PACKAGE_VERSION "1.0.0")
+    set(CPACK_PACKAGE_VENDOR "Student Project")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Система управления товарным инвентарём")
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "Inventory")
+    set(CPACK_NSIS_DISPLAY_NAME "Инвентарь магазина")
+    set(CPACK_NSIS_PACKAGE_NAME "Инвентарь магазина")
+    set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+    set(CPACK_NSIS_CREATE_ICONS_EXTRA
+        "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Инвентарь.lnk' '$INSTDIR\\\\inventory.exe'")
+    set(CPACK_NSIS_DELETE_ICONS_EXTRA
+        "Delete '$SMPROGRAMS\\\\$START_MENU\\\\Инвентарь.lnk'")
+    include(CPack)
 endif()
 
 enable_testing()
