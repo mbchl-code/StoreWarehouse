@@ -300,7 +300,7 @@ void main_window_build(AppState *state) {
     GtkWidget *btn_dir    = gtk_toggle_button_new_with_label("↓ Убыв.");
 
     /* Фиксируем ширину чтобы смена текста не двигала соседние кнопки */
-    gtk_widget_set_size_request(dd_sort,  160, -1);
+    gtk_widget_set_size_request(dd_sort,  190, -1);
     gtk_widget_set_size_request(btn_dir,   90, -1);
     GtkWidget *btn_filter = gtk_button_new_with_label("Фильтр/Поиск");
     GtkWidget *btn_open   = gtk_button_new_with_label("Открыть");
