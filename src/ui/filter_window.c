@@ -1,5 +1,6 @@
 #include "filter_window.h"
 #include "product_object.h"
+#include "filter.h"
 #include <gtk/gtk.h>
 #include <string.h>
 #include <stdlib.h>
@@ -15,12 +16,11 @@ typedef struct {
     GListStore *result_store;
 } FilterCtx;
 
-static void result_store_fill(GListStore *store, const List *list,
-                              int (*match)(const Product *, gpointer), gpointer arg) {
+static void store_fill_qty(GListStore *store, const List *list, const QtyFilter *f) {
     g_list_store_remove_all(store);
     Node *cur = list->head;
     while (cur != NULL) {
-        if (match(&cur->data, arg)) {
+        if (filter_match_qty(&cur->data, f)) {
             ProductObject *obj = product_object_new(&cur->data);
             g_list_store_append(store, obj);
             g_object_unref(obj);
@@ -29,27 +29,17 @@ static void result_store_fill(GListStore *store, const List *list,
     }
 }
 
-/* ── match functions ─────────────────────────────────────────── */
-
-typedef struct { int threshold; } QtyArg;
-typedef struct { int mode; char query[MAX_STR]; double pmin; double pmax; } SearchArg;
-
-static int match_qty(const Product *p, gpointer arg) {
-    QtyArg *a = arg;
-    return p->quantity < a->threshold;
-}
-
-static int match_search(const Product *p, gpointer arg) {
-    SearchArg *a = arg;
-    int result = 0;
-    if (a->mode == 0) {
-        result = (strstr(p->name, a->query) != NULL);
-    } else if (a->mode == 1) {
-        result = (strstr(p->model, a->query) != NULL);
-    } else {
-        result = (p->price >= a->pmin && p->price <= a->pmax);
+static void store_fill_search(GListStore *store, const List *list, const SearchFilter *f) {
+    g_list_store_remove_all(store);
+    Node *cur = list->head;
+    while (cur != NULL) {
+        if (filter_match_search(&cur->data, f)) {
+            ProductObject *obj = product_object_new(&cur->data);
+            g_list_store_append(store, obj);
+            g_object_unref(obj);
+        }
+        cur = cur->next;
     }
-    return result;
 }
 
 /* ── apply callbacks ─────────────────────────────────────────── */
@@ -67,23 +57,23 @@ static void on_search_mode_changed(GtkDropDown *dd, GParamSpec *ps, gpointer ud)
 static void on_apply_qty(GtkButton *btn, gpointer user_data) {
     (void)btn;
     FilterCtx *ctx = user_data;
-    QtyArg arg;
-    arg.threshold = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->spin_qty));
-    result_store_fill(ctx->result_store, &ctx->state->list, match_qty, &arg);
+    QtyFilter f;
+    f.threshold = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->spin_qty));
+    store_fill_qty(ctx->result_store, &ctx->state->list, &f);
 }
 
 static void on_apply_search(GtkButton *btn, gpointer user_data) {
     (void)btn;
     FilterCtx *ctx = user_data;
-    SearchArg arg;
-    arg.mode = (int)gtk_drop_down_get_selected(GTK_DROP_DOWN(ctx->dd_search));
-    strncpy(arg.query,
+    SearchFilter f;
+    f.mode = (SearchMode)gtk_drop_down_get_selected(GTK_DROP_DOWN(ctx->dd_search));
+    strncpy(f.query,
             gtk_editable_get_text(GTK_EDITABLE(ctx->entry_query)),
             MAX_STR - 1);
-    arg.query[MAX_STR - 1] = '\0';
-    arg.pmin = gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->spin_price_min));
-    arg.pmax = gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->spin_price_max));
-    result_store_fill(ctx->result_store, &ctx->state->list, match_search, &arg);
+    f.query[MAX_STR - 1] = '\0';
+    f.price_min = gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->spin_price_min));
+    f.price_max = gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->spin_price_max));
+    store_fill_search(ctx->result_store, &ctx->state->list, &f);
 }
 
 /* ── column factory (shared) ─────────────────────────────────── */

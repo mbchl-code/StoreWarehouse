@@ -13,6 +13,7 @@ set(SOURCES
     src/main.c
     src/list.c
     src/sort.c
+    src/filter.c
     src/fileio.c
     src/export.c
     src/ui/product_object.c
