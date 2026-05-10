@@ -97,13 +97,46 @@ static void on_open_ready(GObject *src, GAsyncResult *res, gpointer user_data) {
     }
 }
 
+static GtkFileFilter *make_inv_filter(void) {
+    GtkFileFilter *f = gtk_file_filter_new();
+    gtk_file_filter_set_name(f, "Файлы инвентаря (*.inv)");
+    gtk_file_filter_add_suffix(f, "inv");
+    return f;
+}
+
+static GtkFileFilter *make_csv_filter(void) {
+    GtkFileFilter *f = gtk_file_filter_new();
+    gtk_file_filter_set_name(f, "Таблицы CSV (*.csv)");
+    gtk_file_filter_add_suffix(f, "csv");
+    return f;
+}
+
 static void on_open(GtkButton *btn, gpointer user_data) {
     (void)btn;
     AppState *state = user_data;
     GtkFileDialog *fd = gtk_file_dialog_new();
     gtk_file_dialog_set_title(fd, "Открыть файл инвентаря");
+
+    GListStore *filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
+    g_list_store_append(filters, make_inv_filter());
+    gtk_file_dialog_set_filters(fd, G_LIST_MODEL(filters));
+    gtk_file_dialog_set_default_filter(fd, g_list_model_get_item(G_LIST_MODEL(filters), 0));
+    g_object_unref(filters);
+
     gtk_file_dialog_open(fd, GTK_WINDOW(state->window), NULL, on_open_ready, state);
     g_object_unref(fd);
+}
+
+static char *ensure_inv_ext(const char *path) {
+    size_t len = strlen(path);
+    int has_ext = (len > 4 && strcmp(path + len - 4, ".inv") == 0);
+    char *result = NULL;
+    if (has_ext) {
+        result = g_strdup(path);
+    } else {
+        result = g_strconcat(path, ".inv", NULL);
+    }
+    return result;
 }
 
 static void on_save_ready(GObject *src, GAsyncResult *res, gpointer user_data) {
@@ -111,13 +144,15 @@ static void on_save_ready(GObject *src, GAsyncResult *res, gpointer user_data) {
     GError *err = NULL;
     GFile *file = gtk_file_dialog_save_finish(GTK_FILE_DIALOG(src), res, &err);
     if (file != NULL) {
-        char *path = g_file_get_path(file);
+        char *raw  = g_file_get_path(file);
+        char *path = ensure_inv_ext(raw);
         if (!fileio_save(path, &state->list)) {
             show_error(state->window, "Ошибка сохранения файла.");
         } else {
             snprintf(state->current_file, sizeof(state->current_file), "%s", path);
         }
         g_free(path);
+        g_free(raw);
         g_object_unref(file);
     } else {
         if (err != NULL) { g_error_free(err); }
@@ -134,6 +169,14 @@ static void on_save(GtkButton *btn, gpointer user_data) {
     } else {
         GtkFileDialog *fd = gtk_file_dialog_new();
         gtk_file_dialog_set_title(fd, "Сохранить файл инвентаря");
+        gtk_file_dialog_set_initial_name(fd, "inventory.inv");
+
+        GListStore *filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
+        g_list_store_append(filters, make_inv_filter());
+        gtk_file_dialog_set_filters(fd, G_LIST_MODEL(filters));
+        gtk_file_dialog_set_default_filter(fd, g_list_model_get_item(G_LIST_MODEL(filters), 0));
+        g_object_unref(filters);
+
         gtk_file_dialog_save(fd, GTK_WINDOW(state->window), NULL, on_save_ready, state);
         g_object_unref(fd);
     }
@@ -159,7 +202,15 @@ static void on_export(GtkButton *btn, gpointer user_data) {
     (void)btn;
     AppState *state = user_data;
     GtkFileDialog *fd = gtk_file_dialog_new();
-    gtk_file_dialog_set_title(fd, "Экспорт в Excel");
+    gtk_file_dialog_set_title(fd, "Экспорт в CSV");
+    gtk_file_dialog_set_initial_name(fd, "inventory.csv");
+
+    GListStore *filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
+    g_list_store_append(filters, make_csv_filter());
+    gtk_file_dialog_set_filters(fd, G_LIST_MODEL(filters));
+    gtk_file_dialog_set_default_filter(fd, g_list_model_get_item(G_LIST_MODEL(filters), 0));
+    g_object_unref(filters);
+
     gtk_file_dialog_save(fd, GTK_WINDOW(state->window), NULL, on_export_ready, state);
     g_object_unref(fd);
 }
