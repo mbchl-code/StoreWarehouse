@@ -13,6 +13,7 @@ int main(void) {
         { "sort: by code",        test_sort_by_code        },
         { "sort: by name",        test_sort_by_name        },
         { "sort: by price",       test_sort_by_price       },
+        { "sort: descending",     test_sort_desc           },
     };
 
     int total  = (int)(sizeof(tests) / sizeof(tests[0]));

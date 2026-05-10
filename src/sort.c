@@ -49,8 +49,24 @@ static void quicksort(Node *lo, Node *hi, SortKey key) {
     }
 }
 
-void list_sort(List *list, SortKey key) {
+static void reverse_list(List *list) {
+    Node *cur = list->head;
+    while (cur != NULL) {
+        Node *next = cur->next;
+        cur->next  = cur->prev;
+        cur->prev  = next;
+        cur        = next;
+    }
+    Node *tmp    = list->head;
+    list->head   = list->tail;
+    list->tail   = tmp;
+}
+
+void list_sort(List *list, SortKey key, SortOrder order) {
     if (list->size > 1) {
         quicksort(list->head, list->tail, key);
+        if (order == SORT_DESC) {
+            reverse_list(list);
+        }
     }
 }

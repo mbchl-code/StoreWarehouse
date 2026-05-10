@@ -63,10 +63,12 @@ static void on_delete(GtkButton *btn, gpointer user_data) {
 static void on_sort(GtkButton *btn, gpointer user_data) {
     (void)btn;
     AppState *state = user_data;
-    GtkDropDown *dd = g_object_get_data(G_OBJECT(state->window), "sort-dd");
-    guint idx = gtk_drop_down_get_selected(dd);
-    SortKey key = (idx == 1) ? SORT_BY_NAME : (idx == 2) ? SORT_BY_PRICE : SORT_BY_CODE;
-    list_sort(&state->list, key);
+    GtkDropDown    *dd       = g_object_get_data(G_OBJECT(state->window), "sort-dd");
+    GtkToggleButton *btn_dir = g_object_get_data(G_OBJECT(state->window), "sort-dir");
+    guint idx  = gtk_drop_down_get_selected(dd);
+    SortKey  key   = (idx == 1) ? SORT_BY_NAME : (idx == 2) ? SORT_BY_PRICE : SORT_BY_CODE;
+    SortOrder order = gtk_toggle_button_get_active(btn_dir) ? SORT_DESC : SORT_ASC;
+    list_sort(&state->list, key, order);
     app_refresh_store(state);
 }
 
@@ -289,18 +291,21 @@ void main_window_build(AppState *state) {
     static const char *sort_opts[] = { "По коду", "По наименованию", "По цене", NULL };
     GtkWidget *dd_sort = gtk_drop_down_new_from_strings(sort_opts);
     GtkWidget *btn_sort   = gtk_button_new_with_label("Сортировать");
+    GtkWidget *btn_dir    = gtk_toggle_button_new_with_label("↓ Убыв.");
     GtkWidget *btn_filter = gtk_button_new_with_label("Фильтр/Поиск");
     GtkWidget *btn_open   = gtk_button_new_with_label("Открыть");
     GtkWidget *btn_save   = gtk_button_new_with_label("Сохранить");
     GtkWidget *btn_export = gtk_button_new_with_label("Экспорт");
 
-    g_object_set_data(G_OBJECT(state->window), "sort-dd", dd_sort);
+    g_object_set_data(G_OBJECT(state->window), "sort-dd",  dd_sort);
+    g_object_set_data(G_OBJECT(state->window), "sort-dir", btn_dir);
 
     gtk_box_append(GTK_BOX(toolbar), btn_add);
     gtk_box_append(GTK_BOX(toolbar), btn_edit);
     gtk_box_append(GTK_BOX(toolbar), btn_del);
     gtk_box_append(GTK_BOX(toolbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
     gtk_box_append(GTK_BOX(toolbar), dd_sort);
+    gtk_box_append(GTK_BOX(toolbar), btn_dir);
     gtk_box_append(GTK_BOX(toolbar), btn_sort);
     gtk_box_append(GTK_BOX(toolbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
     gtk_box_append(GTK_BOX(toolbar), btn_filter);

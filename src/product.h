@@ -30,4 +30,9 @@ typedef enum {
     SORT_BY_PRICE
 } SortKey;
 
+typedef enum {
+    SORT_ASC,
+    SORT_DESC
+} SortOrder;
+
 #endif

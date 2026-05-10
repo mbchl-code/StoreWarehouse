@@ -28,7 +28,7 @@ static void fill(List *list) {
 int test_sort_by_code(void) {
     List list;
     fill(&list);
-    list_sort(&list, SORT_BY_CODE);
+    list_sort(&list, SORT_BY_CODE, SORT_ASC);
     int pass = (list.head->data.code == 10 &&
                 list.head->next->data.code == 20 &&
                 list.tail->data.code == 30);
@@ -39,7 +39,7 @@ int test_sort_by_code(void) {
 int test_sort_by_name(void) {
     List list;
     fill(&list);
-    list_sort(&list, SORT_BY_NAME);
+    list_sort(&list, SORT_BY_NAME, SORT_ASC);
     int pass = (strcmp(list.head->data.name, "Вентилятор") == 0 &&
                 strcmp(list.head->next->data.name, "Кондиционер") == 0 &&
                 strcmp(list.tail->data.name, "Холодильник") == 0);
@@ -50,10 +50,21 @@ int test_sort_by_name(void) {
 int test_sort_by_price(void) {
     List list;
     fill(&list);
-    list_sort(&list, SORT_BY_PRICE);
+    list_sort(&list, SORT_BY_PRICE, SORT_ASC);
     int pass = (list.head->data.price == 80.0 &&
                 list.head->next->data.price == 300.0 &&
                 list.tail->data.price == 500.0);
+    list_clear(&list);
+    return pass;
+}
+
+int test_sort_desc(void) {
+    List list;
+    fill(&list);
+    list_sort(&list, SORT_BY_CODE, SORT_DESC);
+    int pass = (list.head->data.code == 30 &&
+                list.head->next->data.code == 20 &&
+                list.tail->data.code == 10);
     list_clear(&list);
     return pass;
 }
