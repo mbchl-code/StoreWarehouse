@@ -36,6 +36,16 @@ if(XLSXWRITER_FOUND)
     target_link_directories(inventory PRIVATE ${XLSXWRITER_LIBRARY_DIRS})
 endif()
 
+if(WIN32)
+    add_custom_command(TARGET inventory POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DTARGET_FILE="$<TARGET_FILE:inventory>"
+            -DTARGET_DIR="$<TARGET_FILE_DIR:inventory>"
+            -P "${CMAKE_SOURCE_DIR}/cmake/copy_dlls.cmake"
+        COMMENT "Copying GTK4 runtime DLLs to build directory"
+    )
+endif()
+
 enable_testing()
 
 add_executable(test_runner
