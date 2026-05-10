@@ -60,6 +60,12 @@ static void on_delete(GtkButton *btn, gpointer user_data) {
     }
 }
 
+static void on_dir_toggled(GtkToggleButton *btn, gpointer user_data) {
+    (void)user_data;
+    gboolean desc = gtk_toggle_button_get_active(btn);
+    gtk_button_set_label(GTK_BUTTON(btn), desc ? "↑ Возр." : "↓ Убыв.");
+}
+
 static void on_sort(GtkButton *btn, gpointer user_data) {
     (void)btn;
     AppState *state = user_data;
@@ -317,6 +323,7 @@ void main_window_build(AppState *state) {
     g_signal_connect(btn_add,    "clicked", G_CALLBACK(on_add),    state);
     g_signal_connect(btn_edit,   "clicked", G_CALLBACK(on_edit),   state);
     g_signal_connect(btn_del,    "clicked", G_CALLBACK(on_delete), state);
+    g_signal_connect(btn_dir,    "toggled", G_CALLBACK(on_dir_toggled), NULL);
     g_signal_connect(btn_sort,   "clicked", G_CALLBACK(on_sort),   state);
     g_signal_connect(btn_filter, "clicked", G_CALLBACK(on_filter), state);
     g_signal_connect(btn_open,   "clicked", G_CALLBACK(on_open),   state);
