@@ -7,7 +7,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK4 REQUIRED gtk4)
 
-pkg_check_modules(XLSXWRITER xlsxwriter)
+pkg_check_modules(XLSXWRITER REQUIRED xlsxwriter)
 
 set(SOURCES
     src/main.c
@@ -29,12 +29,9 @@ target_compile_options(inventory PRIVATE ${GTK4_CFLAGS_OTHER} -Wall -Wextra -Wpe
 target_link_libraries(inventory ${GTK4_LIBRARIES})
 target_link_directories(inventory PRIVATE ${GTK4_LIBRARY_DIRS})
 
-if(XLSXWRITER_FOUND)
-    target_compile_definitions(inventory PRIVATE HAVE_XLSXWRITER)
-    target_include_directories(inventory PRIVATE ${XLSXWRITER_INCLUDE_DIRS})
-    target_link_libraries(inventory ${XLSXWRITER_LIBRARIES})
-    target_link_directories(inventory PRIVATE ${XLSXWRITER_LIBRARY_DIRS})
-endif()
+target_include_directories(inventory PRIVATE ${XLSXWRITER_INCLUDE_DIRS})
+target_link_libraries(inventory ${XLSXWRITER_LIBRARIES})
+target_link_directories(inventory PRIVATE ${XLSXWRITER_LIBRARY_DIRS})
 
 if(WIN32)
     find_program(PYTHON_EXE NAMES python python3 HINTS "C:/Python313" "C:/Python312" "C:/Python311")

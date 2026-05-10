@@ -104,10 +104,10 @@ static GtkFileFilter *make_inv_filter(void) {
     return f;
 }
 
-static GtkFileFilter *make_csv_filter(void) {
+static GtkFileFilter *make_xlsx_filter(void) {
     GtkFileFilter *f = gtk_file_filter_new();
-    gtk_file_filter_set_name(f, "Таблицы CSV (*.csv)");
-    gtk_file_filter_add_suffix(f, "csv");
+    gtk_file_filter_set_name(f, "Таблицы Excel (*.xlsx)");
+    gtk_file_filter_add_suffix(f, "xlsx");
     return f;
 }
 
@@ -202,11 +202,11 @@ static void on_export(GtkButton *btn, gpointer user_data) {
     (void)btn;
     AppState *state = user_data;
     GtkFileDialog *fd = gtk_file_dialog_new();
-    gtk_file_dialog_set_title(fd, "Экспорт в CSV");
-    gtk_file_dialog_set_initial_name(fd, "inventory.csv");
+    gtk_file_dialog_set_title(fd, "Экспорт в Excel");
+    gtk_file_dialog_set_initial_name(fd, "inventory.xlsx");
 
     GListStore *filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
-    g_list_store_append(filters, make_csv_filter());
+    g_list_store_append(filters, make_xlsx_filter());
     gtk_file_dialog_set_filters(fd, G_LIST_MODEL(filters));
     gtk_file_dialog_set_default_filter(fd, g_list_model_get_item(G_LIST_MODEL(filters), 0));
     g_object_unref(filters);
