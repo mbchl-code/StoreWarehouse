@@ -37,11 +37,6 @@ if(XLSXWRITER_FOUND)
 endif()
 
 if(WIN32)
-    # Увеличиваем стек до 64MB — GTK4 + GLib на Windows требуют больше стека при инициализации
-    target_link_options(inventory PRIVATE -Wl,--stack,67108864)
-    # Подсистема GUI (без консольного окна)
-    target_link_options(inventory PRIVATE -mwindows)
-
     find_program(PYTHON_EXE NAMES python python3 HINTS "C:/Python313" "C:/Python312" "C:/Python311")
     if(PYTHON_EXE)
         add_custom_command(TARGET inventory POST_BUILD
@@ -57,23 +52,19 @@ endif()
 
 enable_testing()
 
-# Минимальный GTK4 тест для диагностики
 add_executable(test_gtk tests/test_gtk.c)
 target_include_directories(test_gtk PRIVATE ${GTK4_INCLUDE_DIRS})
 target_compile_options(test_gtk PRIVATE ${GTK4_CFLAGS_OTHER})
 target_link_libraries(test_gtk ${GTK4_LIBRARIES})
 target_link_directories(test_gtk PRIVATE ${GTK4_LIBRARY_DIRS})
-if(WIN32)
-    target_link_options(test_gtk PRIVATE -Wl,--stack,67108864 -mwindows)
-    if(PYTHON_EXE)
-        add_custom_command(TARGET test_gtk POST_BUILD
-            COMMAND "${PYTHON_EXE}"
-                "${CMAKE_SOURCE_DIR}/cmake/copy_dlls.py"
-                "$<TARGET_FILE:test_gtk>"
-                "$<TARGET_FILE_DIR:test_gtk>"
-            VERBATIM
-        )
-    endif()
+if(WIN32 AND PYTHON_EXE)
+    add_custom_command(TARGET test_gtk POST_BUILD
+        COMMAND "${PYTHON_EXE}"
+            "${CMAKE_SOURCE_DIR}/cmake/copy_dlls.py"
+            "$<TARGET_FILE:test_gtk>"
+            "$<TARGET_FILE_DIR:test_gtk>"
+        VERBATIM
+    )
 endif()
 
 add_executable(test_runner
