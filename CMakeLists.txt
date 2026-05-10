@@ -30,7 +30,8 @@ endif()
 add_executable(inventory ${SOURCES})
 
 target_include_directories(inventory PRIVATE src src/ui ${GTK4_INCLUDE_DIRS})
-target_compile_options(inventory PRIVATE ${GTK4_CFLAGS_OTHER} -Wall -Wextra -Wpedantic)
+target_compile_options(inventory PRIVATE ${GTK4_CFLAGS_OTHER} -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Release>:-O2>)
 target_link_libraries(inventory ${GTK4_LIBRARIES})
 target_link_directories(inventory PRIVATE ${GTK4_LIBRARY_DIRS})
 
