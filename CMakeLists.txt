@@ -23,6 +23,10 @@ set(SOURCES
     src/ui/filter_window.c
 )
 
+if(WIN32)
+    list(APPEND SOURCES resources/app.rc)
+endif()
+
 add_executable(inventory ${SOURCES})
 
 target_include_directories(inventory PRIVATE src src/ui ${GTK4_INCLUDE_DIRS})
@@ -73,6 +77,8 @@ if(WIN32)
     set(CPACK_NSIS_DISPLAY_NAME "Инвентарь магазина")
     set(CPACK_NSIS_PACKAGE_NAME "Инвентарь магазина")
     set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+    set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/resources/icon.ico")
+    set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/resources/icon.ico")
     set(CPACK_NSIS_CREATE_ICONS_EXTRA
         "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Инвентарь.lnk' '$INSTDIR\\\\inventory.exe'")
     set(CPACK_NSIS_DELETE_ICONS_EXTRA
