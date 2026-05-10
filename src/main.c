@@ -41,6 +41,7 @@ static void on_shutdown(GtkApplication *app, gpointer user_data) {
  */
 int main(int argc, char *argv[]) {
 #ifdef _WIN32
+    FreeConsole();
     SetEnvironmentVariableA("GSK_RENDERER", "cairo");
     SetEnvironmentVariableA("GDK_BACKEND",  "win32");
 #endif
