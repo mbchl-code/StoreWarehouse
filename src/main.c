@@ -2,6 +2,9 @@
 #include "app.h"
 #include "main_window.h"
 #include "fileio.h"
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 static AppState g_state;
 
@@ -18,11 +21,13 @@ static void on_shutdown(GtkApplication *app, gpointer user_data) {
 }
 
 int main(int argc, char *argv[]) {
+#ifdef _WIN32
     /* GTK4 4.x на Windows по умолчанию использует D3D12/Vulkan рендерер,
-       который при инициализации может вызвать stack overflow.
-       Принудительно используем Cairo (стабильный CPU-рендерер). */
-    g_setenv("GSK_RENDERER",  "cairo",  FALSE);
-    g_setenv("GDK_BACKEND",   "win32",  FALSE);
+       который при инициализации вызывает stack overflow.
+       SetEnvironmentVariableA работает до любой инициализации GTK. */
+    SetEnvironmentVariableA("GSK_RENDERER", "cairo");
+    SetEnvironmentVariableA("GDK_BACKEND",  "win32");
+#endif
 
     GtkApplication *app = gtk_application_new(
         "com.inventory.app", G_APPLICATION_DEFAULT_FLAGS);

@@ -1,4 +1,7 @@
 #include <gtk/gtk.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 static void on_activate(GtkApplication *app, gpointer ud) {
     (void)ud;
@@ -9,8 +12,10 @@ static void on_activate(GtkApplication *app, gpointer ud) {
 }
 
 int main(int argc, char *argv[]) {
-    g_setenv("GSK_RENDERER", "cairo", FALSE);
-    g_setenv("GDK_BACKEND",  "win32", FALSE);
+#ifdef _WIN32
+    SetEnvironmentVariableA("GSK_RENDERER", "cairo");
+    SetEnvironmentVariableA("GDK_BACKEND",  "win32");
+#endif
     GtkApplication *app = gtk_application_new(
         "com.test.minimal", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
