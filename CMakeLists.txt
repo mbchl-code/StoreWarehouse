@@ -37,13 +37,17 @@ if(XLSXWRITER_FOUND)
 endif()
 
 if(WIN32)
-    add_custom_command(TARGET inventory POST_BUILD
-        COMMAND ${CMAKE_COMMAND}
-            -DTARGET_FILE="$<TARGET_FILE:inventory>"
-            -DTARGET_DIR="$<TARGET_FILE_DIR:inventory>"
-            -P "${CMAKE_SOURCE_DIR}/cmake/copy_dlls.cmake"
-        COMMENT "Copying GTK4 runtime DLLs to build directory"
-    )
+    find_program(PYTHON_EXE NAMES python python3 HINTS "C:/Python313" "C:/Python312" "C:/Python311")
+    if(PYTHON_EXE)
+        add_custom_command(TARGET inventory POST_BUILD
+            COMMAND "${PYTHON_EXE}"
+                "${CMAKE_SOURCE_DIR}/cmake/copy_dlls.py"
+                "$<TARGET_FILE:inventory>"
+                "$<TARGET_FILE_DIR:inventory>"
+            COMMENT "Copying GTK4 runtime DLLs to build directory"
+            VERBATIM
+        )
+    endif()
 endif()
 
 enable_testing()
