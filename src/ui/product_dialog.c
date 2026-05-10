@@ -16,12 +16,25 @@ typedef struct {
     int         edit_code;
 } DialogCtx;
 
+// Show a GTK alert dialog with an error message
+/*
+ * Creates a modal GtkAlertDialog, presents it over parent, then
+ * unrefs it. Used for validation and IO error feedback.
+ */
 static void show_error(GtkWidget *parent, const char *msg) {
     GtkAlertDialog *dlg = gtk_alert_dialog_new("%s", msg);
     gtk_alert_dialog_show(dlg, GTK_WINDOW(parent));
     g_object_unref(dlg);
 }
 
+// Handle the OK button: validate input, then add or edit the product
+/*
+ * In add mode (edit_code < 0): validates all fields are non-empty and
+ * code > 0, then calls list_add. Reports ФТ-7 duplicate-code error if
+ * the code already exists.
+ * In edit mode: calls list_edit to update price, quantity and model,
+ * then closes the dialog.
+ */
 static void on_ok(GtkButton *btn, gpointer user_data) {
     (void)btn;
     DialogCtx *ctx = user_data;
@@ -37,7 +50,6 @@ static void on_ok(GtkButton *btn, gpointer user_data) {
     if (!valid) {
         show_error(ctx->dialog, "Все поля обязательны. Код должен быть > 0.");
     } else if (ctx->edit_code < 0) {
-        /* добавление */
         Product p = {0};
         strncpy(p.group, group, MAX_STR - 1);
         p.code = code;
@@ -53,7 +65,6 @@ static void on_ok(GtkButton *btn, gpointer user_data) {
             gtk_window_destroy(GTK_WINDOW(ctx->dialog));
         }
     } else {
-        /* редактирование */
         Node *node = list_find_by_code(&ctx->state->list, ctx->edit_code);
         if (node != NULL) {
             list_edit(node, price, qty, model);
@@ -63,17 +74,34 @@ static void on_ok(GtkButton *btn, gpointer user_data) {
     }
 }
 
+// Close the dialog without saving changes
+/*
+ * Connected to the Cancel button. Destroys the dialog window,
+ * which triggers on_destroy and frees the DialogCtx.
+ */
 static void on_cancel(GtkButton *btn, gpointer user_data) {
     (void)btn;
     DialogCtx *ctx = user_data;
     gtk_window_destroy(GTK_WINDOW(ctx->dialog));
 }
 
+// Free the DialogCtx allocation when the dialog is destroyed
+/*
+ * Connected to the "destroy" signal of the dialog window so that
+ * cleanup occurs regardless of whether OK or Cancel was pressed.
+ */
 static void on_destroy(GtkWidget *w, gpointer user_data) {
     (void)w;
     g_free(user_data);
 }
 
+// Build and present the add/edit product dialog
+/*
+ * When existing is NULL the dialog is in add mode (edit_code = -1).
+ * When existing points to a product the dialog pre-fills all fields;
+ * code and name are made insensitive because they identify the record.
+ * The dialog is modal and transient over the main window.
+ */
 void product_dialog_show(AppState *state, const Product *existing) {
     int is_edit = (existing != NULL);
 
@@ -101,15 +129,6 @@ void product_dialog_show(AppState *state, const Product *existing) {
     gtk_grid_set_column_spacing(GTK_GRID(grid), 8);
     gtk_box_append(GTK_BOX(vbox), grid);
 
-    struct { const char *label; GtkWidget **widget; } rows[] = {
-        { "Группа:",       &ctx->entry_group },
-        { "Код:",          &ctx->spin_code   },
-        { "Наименование:", &ctx->entry_name  },
-        { "Модель:",       &ctx->entry_model },
-        { "Цена:",         &ctx->spin_price  },
-        { "Количество:",   &ctx->spin_qty    },
-    };
-
     ctx->entry_group = gtk_entry_new();
     ctx->spin_code   = gtk_spin_button_new_with_range(1, 9999999, 1);
     ctx->entry_name  = gtk_entry_new();
@@ -118,12 +137,14 @@ void product_dialog_show(AppState *state, const Product *existing) {
     gtk_spin_button_set_digits(GTK_SPIN_BUTTON(ctx->spin_price), 2);
     ctx->spin_qty    = gtk_spin_button_new_with_range(0, 999999, 1);
 
-    *rows[0].widget = ctx->entry_group;
-    *rows[1].widget = ctx->spin_code;
-    *rows[2].widget = ctx->entry_name;
-    *rows[3].widget = ctx->entry_model;
-    *rows[4].widget = ctx->spin_price;
-    *rows[5].widget = ctx->spin_qty;
+    struct { const char *label; GtkWidget *widget; } rows[] = {
+        { "Группа:",       ctx->entry_group },
+        { "Код:",          ctx->spin_code   },
+        { "Наименование:", ctx->entry_name  },
+        { "Модель:",       ctx->entry_model },
+        { "Цена:",         ctx->spin_price  },
+        { "Количество:",   ctx->spin_qty    },
+    };
 
     int n = (int)(sizeof(rows) / sizeof(rows[0]));
     int i = 0;
@@ -131,8 +152,8 @@ void product_dialog_show(AppState *state, const Product *existing) {
         GtkWidget *lbl = gtk_label_new(rows[i].label);
         gtk_label_set_xalign(GTK_LABEL(lbl), 1.0f);
         gtk_grid_attach(GTK_GRID(grid), lbl,          0, i, 1, 1);
-        gtk_grid_attach(GTK_GRID(grid), *rows[i].widget, 1, i, 1, 1);
-        gtk_widget_set_hexpand(*rows[i].widget, TRUE);
+        gtk_grid_attach(GTK_GRID(grid), rows[i].widget, 1, i, 1, 1);
+        gtk_widget_set_hexpand(rows[i].widget, TRUE);
         i++;
     }
 

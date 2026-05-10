@@ -2,6 +2,11 @@
 #include <string.h>
 #include <xlsxwriter.h>
 
+// Write the header row with column titles to the worksheet
+/*
+ * Fills row 0 with the six column names used in the inventory table.
+ * Must be called before writing any data rows.
+ */
 static void write_header(lxw_worksheet *ws) {
     const char *cols[] = {
         "Группа", "Код", "Наименование", "Модель", "Цена", "Количество"
@@ -14,6 +19,15 @@ static void write_header(lxw_worksheet *ws) {
     }
 }
 
+// Export the product list to an xlsx file using libxlsxwriter
+/*
+ * Creates a new workbook at path, adds a worksheet named "Инвентарь",
+ * writes the header row, then writes one row per product in list order.
+ * Strings are written with worksheet_write_string, numbers with
+ * worksheet_write_number.
+ * Returns 1 on success, 0 if the workbook could not be created or
+ * workbook_close reports an error.
+ */
 int export_to_excel(const char *path, const List *list) {
     lxw_workbook  *wb = workbook_new(path);
     lxw_worksheet *ws = workbook_add_worksheet(wb, "Инвентарь");

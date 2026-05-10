@@ -16,6 +16,11 @@ typedef struct {
     GListStore *result_store;
 } FilterCtx;
 
+// Fill the result store with products that pass the quantity filter
+/*
+ * Clears the store, then appends a ProductObject for every node whose
+ * quantity is strictly below the threshold defined in f.
+ */
 static void store_fill_qty(GListStore *store, const List *list, const QtyFilter *f) {
     g_list_store_remove_all(store);
     Node *cur = list->head;
@@ -29,6 +34,11 @@ static void store_fill_qty(GListStore *store, const List *list, const QtyFilter 
     }
 }
 
+// Fill the result store with products that match the search filter
+/*
+ * Clears the store, then appends a ProductObject for every node that
+ * satisfies the name, model or price-range criterion defined in f.
+ */
 static void store_fill_search(GListStore *store, const List *list, const SearchFilter *f) {
     g_list_store_remove_all(store);
     Node *cur = list->head;
@@ -42,8 +52,12 @@ static void store_fill_search(GListStore *store, const List *list, const SearchF
     }
 }
 
-/* ── apply callbacks ─────────────────────────────────────────── */
-
+// Toggle visibility of the text entry and price-range box when mode changes
+/*
+ * Connected to the "notify::selected" signal of the search drop-down.
+ * Shows the price-range box only when mode index 2 (Цена) is selected,
+ * and hides it otherwise, showing the text entry instead.
+ */
 static void on_search_mode_changed(GtkDropDown *dd, GParamSpec *ps, gpointer ud) {
     (void)ps; (void)ud;
     guint mode = gtk_drop_down_get_selected(dd);
@@ -54,6 +68,11 @@ static void on_search_mode_changed(GtkDropDown *dd, GParamSpec *ps, gpointer ud)
     gtk_widget_set_visible(price_box,  is_price);
 }
 
+// Apply the quantity filter and populate the result table
+/*
+ * Reads the threshold from the spin button and delegates matching
+ * to filter_match_qty via store_fill_qty.
+ */
 static void on_apply_qty(GtkButton *btn, gpointer user_data) {
     (void)btn;
     FilterCtx *ctx = user_data;
@@ -62,6 +81,11 @@ static void on_apply_qty(GtkButton *btn, gpointer user_data) {
     store_fill_qty(ctx->result_store, &ctx->state->list, &f);
 }
 
+// Apply the search filter and populate the result table
+/*
+ * Reads the selected mode, query text and price bounds from the UI,
+ * then delegates matching to filter_match_search via store_fill_search.
+ */
 static void on_apply_search(GtkButton *btn, gpointer user_data) {
     (void)btn;
     FilterCtx *ctx = user_data;
@@ -76,15 +100,23 @@ static void on_apply_search(GtkButton *btn, gpointer user_data) {
     store_fill_search(ctx->result_store, &ctx->state->list, &f);
 }
 
-/* ── column factory (shared) ─────────────────────────────────── */
-
-typedef struct { int col_idx; } ColD;
-
+// GObject instance initialiser for a single column label widget
+/*
+ * Called by GtkSignalListItemFactory for each new list row slot.
+ * Creates an empty GtkLabel as the child widget of the list item.
+ */
 static void on_setup(GtkSignalListItemFactory *f, GtkListItem *item, gpointer u) {
     (void)f; (void)u;
     gtk_list_item_set_child(item, gtk_label_new(""));
 }
 
+typedef struct { int col_idx; } ColD;
+
+// Bind a ProductObject's field to the label in the current list item
+/*
+ * Called by GtkSignalListItemFactory whenever a row becomes visible.
+ * Formats the field selected by col_idx and sets the label text.
+ */
 static void on_bind(GtkSignalListItemFactory *f, GtkListItem *item, gpointer user_data) {
     (void)f;
     ColD *cd = user_data;
@@ -93,20 +125,30 @@ static void on_bind(GtkSignalListItemFactory *f, GtkListItem *item, gpointer use
         PRODUCT_OBJECT(gtk_list_item_get_item(item)));
     char buf[128];
     buf[0] = '\0';
-    if (cd->col_idx == 0)      { snprintf(buf, sizeof(buf), "%s", p->group); }
-    else if (cd->col_idx == 1) { snprintf(buf, sizeof(buf), "%d", p->code);  }
-    else if (cd->col_idx == 2) { snprintf(buf, sizeof(buf), "%s", p->name);  }
-    else if (cd->col_idx == 3) { snprintf(buf, sizeof(buf), "%s", p->model); }
-    else if (cd->col_idx == 4) { snprintf(buf, sizeof(buf), "%.2f", p->price); }
-    else if (cd->col_idx == 5) { snprintf(buf, sizeof(buf), "%d", p->quantity); }
+    if (cd->col_idx == 0)      { snprintf(buf, sizeof(buf), "%s",   p->group);    }
+    else if (cd->col_idx == 1) { snprintf(buf, sizeof(buf), "%d",   p->code);     }
+    else if (cd->col_idx == 2) { snprintf(buf, sizeof(buf), "%s",   p->name);     }
+    else if (cd->col_idx == 3) { snprintf(buf, sizeof(buf), "%s",   p->model);    }
+    else if (cd->col_idx == 4) { snprintf(buf, sizeof(buf), "%.2f", p->price);    }
+    else if (cd->col_idx == 5) { snprintf(buf, sizeof(buf), "%d",   p->quantity); }
     gtk_label_set_text(GTK_LABEL(label), buf);
 }
 
+// Destructor passed to g_signal_connect_data to free the ColD allocation
+/*
+ * Called by GLib when the signal connection is finalised.
+ */
 static void free_col_d(gpointer data, GClosure *closure) {
     (void)closure;
     g_free(data);
 }
 
+// Append a text column to the column view using a signal-based factory
+/*
+ * Creates a ColD heap allocation that survives until the factory's
+ * "bind" signal connection is destroyed, at which point free_col_d
+ * releases it.
+ */
 static void add_col(GtkColumnView *cv, const char *title, int idx) {
     ColD *cd = g_new(ColD, 1);
     cd->col_idx = idx;
@@ -120,8 +162,11 @@ static void add_col(GtkColumnView *cv, const char *title, int idx) {
     g_object_unref(col);
 }
 
-/* ── window build ────────────────────────────────────────────── */
-
+// Free FilterCtx when the filter window is closed
+/*
+ * Connected to the "destroy" signal of the filter window.
+ * Unrefs the result GListStore and frees the context struct.
+ */
 static void on_destroy(GtkWidget *w, gpointer user_data) {
     (void)w;
     FilterCtx *ctx = user_data;
@@ -129,6 +174,13 @@ static void on_destroy(GtkWidget *w, gpointer user_data) {
     g_free(ctx);
 }
 
+// Build and present the filter/search window
+/*
+ * Creates a transient window with two notebook tabs:
+ *   Tab 1 — quantity filter (показывает товары с количеством < N)
+ *   Tab 2 — text/price search with dynamic UI based on selected mode
+ * Results are shown in a GtkColumnView at the bottom of the window.
+ */
 void filter_window_show(AppState *state) {
     FilterCtx *ctx = g_new0(FilterCtx, 1);
     ctx->state        = state;
@@ -150,7 +202,7 @@ void filter_window_show(AppState *state) {
     GtkWidget *notebook = gtk_notebook_new();
     gtk_box_append(GTK_BOX(vbox), notebook);
 
-    /* ── tab 1: filter by quantity ── */
+    /* tab 1 — quantity filter */
     GtkWidget *tab1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     gtk_widget_set_margin_start(tab1, 8);
     gtk_widget_set_margin_top(tab1, 8);
@@ -166,7 +218,7 @@ void filter_window_show(AppState *state) {
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook), tab1,
                              gtk_label_new("Фильтр по количеству"));
 
-    /* ── tab 2: search ── */
+    /* tab 2 — search */
     GtkWidget *tab2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     gtk_widget_set_margin_start(tab2, 8);
     gtk_widget_set_margin_top(tab2, 8);
@@ -176,13 +228,12 @@ void filter_window_show(AppState *state) {
     ctx->dd_search = gtk_drop_down_new_from_strings(modes);
     gtk_box_append(GTK_BOX(tab2), ctx->dd_search);
 
-    /* текстовый запрос — виден при режимах Наименование и Модель */
     ctx->entry_query = gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(ctx->entry_query), "Поисковый запрос");
     gtk_widget_set_hexpand(ctx->entry_query, TRUE);
     gtk_box_append(GTK_BOX(tab2), ctx->entry_query);
 
-    /* блок ценового диапазона — виден только при режиме Цена */
+    /* price range box — hidden until mode "Цена" is selected */
     GtkWidget *price_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
     gtk_box_append(GTK_BOX(price_box), gtk_label_new("от"));
     ctx->spin_price_min = gtk_spin_button_new_with_range(0, 9999999, 0.01);
@@ -197,7 +248,6 @@ void filter_window_show(AppState *state) {
     gtk_widget_set_visible(price_box, FALSE);
     gtk_box_append(GTK_BOX(tab2), price_box);
 
-    /* переключаем видимость при смене режима */
     g_object_set_data(G_OBJECT(ctx->dd_search), "entry",     ctx->entry_query);
     g_object_set_data(G_OBJECT(ctx->dd_search), "price-box", price_box);
     g_signal_connect(ctx->dd_search, "notify::selected",
@@ -210,7 +260,7 @@ void filter_window_show(AppState *state) {
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook), tab2,
                              gtk_label_new("Поиск"));
 
-    /* ── results table ── */
+    /* results table */
     GtkSingleSelection *sel = gtk_single_selection_new(
         G_LIST_MODEL(ctx->result_store));
     GtkWidget *cv = gtk_column_view_new(GTK_SELECTION_MODEL(sel));
