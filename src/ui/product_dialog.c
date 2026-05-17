@@ -23,6 +23,8 @@ typedef struct {
  */
 static void show_error(GtkWidget *parent, const char *msg) {
     GtkAlertDialog *dlg = gtk_alert_dialog_new("%s", msg);
+    const char *buttons[] = { "Закрыть", NULL };
+    gtk_alert_dialog_set_buttons(dlg, buttons);
     gtk_alert_dialog_show(dlg, GTK_WINDOW(parent));
     g_object_unref(dlg);
 }
@@ -46,9 +48,11 @@ static void on_ok(GtkButton *btn, gpointer user_data) {
     double price = gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->spin_price));
     int    qty   = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->spin_qty));
 
-    int valid = (group[0] != '\0' && name[0] != '\0' && model[0] != '\0' && code > 0);
+    int valid = (group[0] != '\0' && name[0] != '\0' && model[0] != '\0');
     if (!valid) {
-        show_error(ctx->dialog, "Все поля обязательны. Код должен быть > 0.");
+        show_error(ctx->dialog, "Заполнены не все поля! Для добавления товара необходимо заполнить все поля.");
+    } else if (price < 0.0) {
+        show_error(ctx->dialog, "Цена должна быть положительным числом!");
     } else if (ctx->edit_code < 0) {
         Product p = {0};
         strncpy(p.group, group, MAX_STR - 1);
@@ -133,8 +137,9 @@ void product_dialog_show(AppState *state, const Product *existing) {
     ctx->spin_code   = gtk_spin_button_new_with_range(1, 9999999, 1);
     ctx->entry_name  = gtk_entry_new();
     ctx->entry_model = gtk_entry_new();
-    ctx->spin_price  = gtk_spin_button_new_with_range(0.0, 9999999.0, 0.01);
+    ctx->spin_price  = gtk_spin_button_new_with_range(-9999999.0, 9999999.0, 0.01);
     gtk_spin_button_set_digits(GTK_SPIN_BUTTON(ctx->spin_price), 2);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(ctx->spin_price), 0.0);
     ctx->spin_qty    = gtk_spin_button_new_with_range(0, 999999, 1);
 
     struct { const char *label; GtkWidget *widget; } rows[] = {
