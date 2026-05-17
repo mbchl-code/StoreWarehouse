@@ -22,6 +22,8 @@ static void add_text_column(GtkColumnView *cv, const char *title,
  */
 static void show_error(GtkWidget *parent, const char *msg) {
     GtkAlertDialog *dlg = gtk_alert_dialog_new("%s", msg);
+    const char *buttons[] = { "Закрыть", NULL };
+    gtk_alert_dialog_set_buttons(dlg, buttons);
     gtk_alert_dialog_show(dlg, GTK_WINDOW(parent));
     g_object_unref(dlg);
 }
