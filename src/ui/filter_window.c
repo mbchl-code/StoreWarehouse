@@ -4,6 +4,15 @@
 #include <gtk/gtk.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+
+static void show_info(GtkWidget *parent, const char *msg) {
+    GtkAlertDialog *dlg = gtk_alert_dialog_new("%s", msg);
+    const char *buttons[] = { "Закрыть", NULL };
+    gtk_alert_dialog_set_buttons(dlg, buttons);
+    gtk_alert_dialog_show(dlg, GTK_WINDOW(parent));
+    g_object_unref(dlg);
+}
 
 typedef struct {
     AppState   *state;
@@ -79,6 +88,12 @@ static void on_apply_qty(GtkButton *btn, gpointer user_data) {
     QtyFilter f;
     f.threshold = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->spin_qty));
     store_fill_qty(ctx->result_store, &ctx->state->list, &f);
+    if (g_list_model_get_n_items(G_LIST_MODEL(ctx->result_store)) == 0) {
+        char msg[128];
+        snprintf(msg, sizeof(msg),
+                 "Товаров с количеством менее %d не найдено.", f.threshold);
+        show_info(ctx->window, msg);
+    }
 }
 
 // Apply the search filter and populate the result table
@@ -98,6 +113,9 @@ static void on_apply_search(GtkButton *btn, gpointer user_data) {
     f.price_min = gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->spin_price_min));
     f.price_max = gtk_spin_button_get_value(GTK_SPIN_BUTTON(ctx->spin_price_max));
     store_fill_search(ctx->result_store, &ctx->state->list, &f);
+    if (g_list_model_get_n_items(G_LIST_MODEL(ctx->result_store)) == 0) {
+        show_info(ctx->window, "Товар не найден.");
+    }
 }
 
 // GObject instance initialiser for a single column label widget
